@@ -58,8 +58,11 @@ git push -u origin main
 | Key | Value |
 |-----|-------|
 | `API_SECRET` | Сгенерируйте: `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `SESSION_SIGNING_SECRET` | Отдельный секрет для подписи access token: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `GOOGLE_CREDENTIALS_JSON` | Содержимое файла `credentials.json` целиком (весь JSON) |
 | `SPREADSHEET_NAME` | `VignetteCloud_Licenses` |
+| `ACCESS_TOKEN_TTL_MINUTES` | `15` |
+| `REFRESH_TOKEN_TTL_DAYS` | `30` |
 | `PYTHON_VERSION` | `3.12` |
 
 > ⚠️ **GOOGLE_CREDENTIALS_JSON**: откройте `credentials.json` в текстовом редакторе,  
@@ -124,6 +127,18 @@ curl https://proalbom-license-api.onrender.com/api/health
 
 **Error codes:** `invalid_key`, `key_not_found`, `key_blocked`, `key_expired`, `hwid_mismatch`, `no_email`, `unknown_status`
 
+### POST /api/client/activate
+Публичная активация и выдача session tokens.
+
+### POST /api/client/bootstrap
+Выдача session tokens для уже активированного ключа.
+
+### POST /api/client/refresh
+Обновление access token по refresh token.
+
+### POST /api/client/session-verify
+Проверка access token.
+
 ---
 
 ## Борьба с Cold Start (Free Tier)
@@ -147,9 +162,9 @@ Cold start = 20–40 секунд.
 
 ### Шаг 1: Настроить клиентский конфиг API
 
-Рабочий токен больше не нужно вшивать в `VignetteCore/api_client.py`.
+В новой session-based схеме обычному клиенту больше не нужен общий `api_token`.
 
-Используйте один из двух вариантов:
+Нужен только URL сервера. При необходимости можно использовать локальный конфиг только с `api_urls`:
 
 #### Вариант A: локальный файл `VignetteCore/license_api.json`
 
@@ -157,21 +172,11 @@ Cold start = 20–40 секунд.
 {
   "api_urls": [
     "https://proalbom-license-api.onrender.com"
-  ],
-  "api_token": "ваш_сгенерированный_токен"
+  ]
 }
 ```
 
-#### Вариант B: переменные окружения для сборки
-
-```powershell
-$env:VIGNETTE_API_URLS="https://proalbom-license-api.onrender.com"
-$env:VIGNETTE_API_TOKEN="ваш_сгенерированный_токен"
-```
-
-При `python build_installer.py --build` или `--build-all` инсталлятор сам материализует `_install/VignetteCore/license_api.json` из этих переменных.
-
-> В production-сборке без `license_api.json` или `VIGNETTE_API_TOKEN` лицензирование работать не будет.
+Легаси-`API_SECRET` нужен только для административных endpoint'ов `/api/verify` и `/api/activate`, но не для пользовательского session flow.
 
 ### Шаг 2: Обновить auth.py
 
