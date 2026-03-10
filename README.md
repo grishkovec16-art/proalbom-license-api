@@ -145,16 +145,33 @@ Cold start = 20–40 секунд.
 
 После деплоя сервера нужно переключить клиент.
 
-### Шаг 1: Настроить api_client.py
+### Шаг 1: Настроить клиентский конфиг API
 
-Отредактируйте `VignetteCore/api_client.py`:
+Рабочий токен больше не нужно вшивать в `VignetteCore/api_client.py`.
 
-```python
-API_URLS = [
-    "https://proalbom-license-api.onrender.com",  # ← ваш URL с Render
-]
-API_TOKEN = "ваш_сгенерированный_токен"  # ← тот же что API_SECRET на сервере
+Используйте один из двух вариантов:
+
+#### Вариант A: локальный файл `VignetteCore/license_api.json`
+
+```json
+{
+  "api_urls": [
+    "https://proalbom-license-api.onrender.com"
+  ],
+  "api_token": "ваш_сгенерированный_токен"
+}
 ```
+
+#### Вариант B: переменные окружения для сборки
+
+```powershell
+$env:VIGNETTE_API_URLS="https://proalbom-license-api.onrender.com"
+$env:VIGNETTE_API_TOKEN="ваш_сгенерированный_токен"
+```
+
+При `python build_installer.py --build` или `--build-all` инсталлятор сам материализует `_install/VignetteCore/license_api.json` из этих переменных.
+
+> В production-сборке без `license_api.json` или `VIGNETTE_API_TOKEN` лицензирование работать не будет.
 
 ### Шаг 2: Обновить auth.py
 
